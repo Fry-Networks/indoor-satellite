@@ -8,11 +8,9 @@ import uuid
 
 # Function to decrypt config file
 def decrypt_config():
-    with open("key.key", "rb") as key_file:
-        key = key_file.read()
+    key = "REDACTED_ROTATE_ME"
     cipher = Fernet(key)
-    with open("config.json.enc", "rb") as file:
-        encrypted_config = file.read()
+    encrypted_config = "gAAAAABkqfR_6bpgHl2DRWjxfaQVfKW0tw8YTauZLYZJU66xLOy7Xsy-OYF0TYvg3uA644GusZd3X__q1cMdoYGnsIaOvl62Bh-VvOKEgp7gmEOdrx0wxPzzvuDPOxC9nyVNDXm-wbf1U7lYQRd7_nfYiDIiQ7nP4aEesxoIqiCW46QCkRuiU3NxBPUxWGAWzlIlVdxVtUWkCjZK5mFzPLntRmXzI7hy7eq07VYCHVWwWhp69Ujb7kA="
     config = json.loads(cipher.decrypt(encrypted_config))
     return config
 
