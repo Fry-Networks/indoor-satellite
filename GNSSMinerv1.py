@@ -10,7 +10,8 @@ import uuid
 def decrypt_config():
     key = "REDACTED_ROTATE_ME"
     cipher = Fernet(key)
-    encrypted_config = "gAAAAABkqfR_6bpgHl2DRWjxfaQVfKW0tw8YTauZLYZJU66xLOy7Xsy-OYF0TYvg3uA644GusZd3X__q1cMdoYGnsIaOvl62Bh-VvOKEgp7gmEOdrx0wxPzzvuDPOxC9nyVNDXm-wbf1U7lYQRd7_nfYiDIiQ7nP4aEesxoIqiCW46QCkRuiU3NxBPUxWGAWzlIlVdxVtUWkCjZK5mFzPLntRmXzI7hy7eq07VYCHVWwWhp69Ujb7kA="
+    # encrypted_config = "gAAAAABkqfR_6bpgHl2DRWjxfaQVfKW0tw8YTauZLYZJU66xLOy7Xsy-OYF0TYvg3uA644GusZd3X__q1cMdoYGnsIaOvl62Bh-VvOKEgp7gmEOdrx0wxPzzvuDPOxC9nyVNDXm-wbf1U7lYQRd7_nfYiDIiQ7nP4aEesxoIqiCW46QCkRuiU3NxBPUxWGAWzlIlVdxVtUWkCjZK5mFzPLntRmXzI7hy7eq07VYCHVWwWhp69Ujb7kA="
+    encrypted_config = "gAAAAABkwn6IA2T8YiOAdpFa-WX_1V1mOc3egaT2VoXTeCc8YClBHgLAG0QZQs0W2VEmt-QxHNNB0jDhkqyHPebhXZxvhVTvjEnuOqR2Q7ALhX5e3ox7wgYDzJhGLPjGSgFf6u34MmtKLER-gBIn0U3AeBNe2hQRZLAcHGa9psISSHkvcZpCmo2EV1GXcPgGhLUz0EuKpNUlYPHIhfXvWW0i2NpB5braUNHyWeSMCyEFGqUhUiA4UaaGwjvyiv5EADTyIPU1p7OtxL181A57Xxj_nwTJl-Q0ag=="
     config = json.loads(cipher.decrypt(encrypted_config))
     return config
 
