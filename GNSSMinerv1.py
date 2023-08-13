@@ -9,10 +9,25 @@ import pysftp
 import json
 from cryptography.fernet import Fernet
 import uuid
+import serial.tools.list_ports
+
 
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+def find_available_serial_port():
+    available_ports = list(serial.tools.list_ports.comports())
+    for port, desc, hwid in available_ports:
+        if "satellite_miner_identifier" in hwid:
+            return port
+    return None
+
+def open_serial_connection(port, baudrate=9600, timeout=1):
+    try:
+        ser = serial.Serial(port=port, baudrate=baudrate, timeout=timeout)
+        return ser
+    except serial.SerialException:
+        return None
 
 # Function to decrypt config file
 def owen_decrypt(key, ciphertext):
@@ -34,8 +49,27 @@ def decrypt_config():
     return config
 
 config = decrypt_config()
+config_port = config['serial_port']
+ports = serial.tools.list_ports.comports()
+# ser = serial.Serial(port=config_port, baudrate=9600, timeout=1)
 
-ser = serial.Serial(port=config['serial_port'], baudrate=9600, timeout=1)
+ser = open_serial_connection(config_port)
+
+if ser is None:
+    print(f"[!] Could not open port: {config_port}")
+    available_port = find_available_serial_port()
+
+    if available_port:
+        print(f"[_] Found available port: {available_port}")
+        ser = open_serial_connection(available_port)
+    else:
+        print("[_] No available serial ports found.")
+
+if ser:
+    print("[_] port connected.")
+
+
+
 
 # Get MAC address
 mac = '-'.join(['{:02x}'.format((uuid.getnode() >> i) & 0xff) for i in range(0,8*6,8)][::-1])
@@ -60,7 +94,7 @@ last_upload_hour = now.hour
 while True:
     data = ser.readline().decode('utf-8').strip()
     if data:  # if data is not empty
-        print(f"Received: {data}")
+        print(f"[_] Received: {data}")
         write_to_log(data, current_file)
         now = datetime.datetime.now()
         if now.hour != last_upload_hour:
