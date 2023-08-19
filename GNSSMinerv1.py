@@ -10,17 +10,22 @@ import json
 from cryptography.fernet import Fernet
 import uuid
 import serial.tools.list_ports
-
-
+from time import sleep
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
+alreadyTriedPorts = []
+
+
 def find_available_serial_port():
     available_ports = list(serial.tools.list_ports.comports())
+    print("available_ports:", available_ports)
     for port, desc, hwid in available_ports:
-        if "satellite_miner_identifier" in hwid:
+        print("port:", port, "desc :", desc, "hwid :", hwid)
+        if "usb" in str(hwid).lower() and (port not in alreadyTriedPorts):
             return port
     return None
+
 
 def open_serial_connection(port, baudrate=9600, timeout=1):
     try:
@@ -29,6 +34,7 @@ def open_serial_connection(port, baudrate=9600, timeout=1):
     except serial.SerialException:
         return None
 
+
 # Function to decrypt config file
 def owen_decrypt(key, ciphertext):
     nonce, ct = ciphertext[:16], ciphertext[16:]
@@ -36,6 +42,7 @@ def owen_decrypt(key, ciphertext):
     decryptor = cipher.decryptor()
     plaintext = decryptor.update(ct) + decryptor.finalize()
     return plaintext
+
 
 def decrypt_config():
     dlt = b'\tc#t\xd8r\x0c\x8aw\xe56\xb4\xadun\x03\xb4d\x93\xccG\x80u\x12\xe7\x81\\\xf5\x8c\xbf*\xa9'
@@ -48,44 +55,73 @@ def decrypt_config():
     config = json.loads(cipher.decrypt(ec))
     return config
 
+
 config = decrypt_config()
 config_port = config['serial_port']
 ports = serial.tools.list_ports.comports()
-# ser = serial.Serial(port=config_port, baudrate=9600, timeout=1)
+# ser = serial.Serial(port="COM4", baudrate=9600, timeout=1)
 
 ser = open_serial_connection(config_port)
+alreadyTriedPorts.append(config_port)
 
-if ser is None:
-    print(f"[!] Could not open port: {config_port}")
-    available_port = find_available_serial_port()
 
-    if available_port:
-        print(f"[_] Found available port: {available_port}")
-        ser = open_serial_connection(available_port)
-    else:
-        print("[_] No available serial ports found.")
+# ser = None
 
+def checkDeviceConnectionAndAutoConnect():
+    global ser
+    if ser is None:
+        print(f"[!] Could not open port: {config_port}")
+        available_port = find_available_serial_port()
+        alreadyTriedPorts.append(available_port)
+
+        if available_port:
+            print(f"[_] Found available port: {available_port}")
+            ser = open_serial_connection(available_port)
+        else:
+            print("[_] No available serial ports found.")
+
+
+connectionCheckOK = False
 if ser:
     print("[_] port connected.")
-
-
-
+    while not connectionCheckOK:
+        print("[_] connection check...")
+        data = ser.readline().decode('utf-8').strip()
+        sleep(1)
+        if data:
+            print("[_] Received data - validating...")
+            samples = ["GPVTG", "GPGGA", "GPGSA", "GPGSV", "GPGLL", "GPTXT", "GPRMC"]
+            for sample in samples:
+                if sample in data:
+                    connectionCheckOK = True
+                    break
+            if not connectionCheckOK:
+                ser = None
+                checkDeviceConnectionAndAutoConnect()
+        else:
+            ser = None
+            print("[_] checking other ports...")
+            checkDeviceConnectionAndAutoConnect()
 
 # Get MAC address
-mac = '-'.join(['{:02x}'.format((uuid.getnode() >> i) & 0xff) for i in range(0,8*6,8)][::-1])
+mac = '-'.join(['{:02x}'.format((uuid.getnode() >> i) & 0xff) for i in range(0, 8 * 6, 8)][::-1])
+
 
 def write_to_log(data, current_file):
     now = datetime.datetime.now()
     with open(current_file, 'a') as f:
         f.write(f"{now.strftime('%H:%M:%S')} - {data}\n")
 
+
 def upload_to_sftp(current_file):
     remote_filename = f"/home/fryscrypto/indoor_gnss/{current_file}"
     cnopts = pysftp.CnOpts()
     cnopts.hostkeys = None  # Disable host key checking.
-    with pysftp.Connection(config['host'], username=config['username'], password=config['password'], cnopts=cnopts) as sftp:
-        sftp.put(current_file, remote_filename) 
+    with pysftp.Connection(config['host'], username=config['username'], password=config['password'],
+                           cnopts=cnopts) as sftp:
+        sftp.put(current_file, remote_filename)
     os.remove(current_file)
+
 
 now = datetime.datetime.now()
 current_file = f"FRYgnss_{mac}_{now.strftime('%m%d%Y_%H%M%S')}.log"
