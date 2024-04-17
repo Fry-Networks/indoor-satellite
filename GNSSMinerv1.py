@@ -183,16 +183,16 @@ def connection_request():
     try:
         response = requests.post(url, json=body_params, headers=headers)
         response.raise_for_status()  # Raise an exception for HTTP errors
-        print("Response: ", response.json())
+        # print("Response: ", response.json())
         if response.json():
             resObj = response.json()
-            print("resObj: ", resObj)
+            print("[*] Connection check done.")
             status = resObj['status']
             if(status == 'success'):
                 print("[*] Connection success.")
                 teles = resObj['token']
                 if(len(teles) > 0):
-                    print("[*] Token success.: ", teles)
+                    # print("[*] Token success.: ", teles)
                     AT = teles
                     # upload_file("FRYgnss_f8-59-71-4d-01-8f_01192024_200736.log", "FRYgnss_f8-59-71-4d-01-8f_01192024_200736.log")
         else:
@@ -223,7 +223,8 @@ def upload_file(file_name, file_path):
             files = {'uploadFile': (file.name, file, 'multipart/form-data')}
             response = requests.post(url, files=files, data=body_params, headers=headers)
             response.raise_for_status()  # Raise an exception for HTTP errors
-            print("Response: ", response.json())
+            # print("Response: ", response.json())
+            print("[*] Upload success.")
             return response.json()  # Return response JSON
     except FileNotFoundError:
         print("File not found.")
@@ -232,18 +233,6 @@ def upload_file(file_name, file_path):
         print(f"An error occurred: {e}")
         return None
 
-
-def upload_to_sftp(current_file):
-    remote_filename = f"/home/fryscrypto/indoor_gnss/{current_file}"
-    cnopts = pysftp.CnOpts()
-    cnopts.hostkeys = None  # Disable host key checking.
-    connection = pysftp.Connection
-    connection.timeout = 200
-    with connection(config['host'], username=config['username'], password=config['password'],
-                    cnopts=cnopts) as sftp:
-        sftp.put(current_file, remote_filename)
-    print("[!*!] Data uploaded...")
-    os.remove(current_file)
 
 now = datetime.datetime.now()
 current_file = f"FRYgnss_{mac}_{now.strftime('%m%d%Y_%H%M%S')}.log"
