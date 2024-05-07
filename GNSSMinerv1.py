@@ -41,31 +41,7 @@ def open_serial_connection(port, baudrate=9600, timeout=1):
     except serial.SerialException:
         return None
 
-
-# Function to decrypt config file
-def owen_decrypt(key, ciphertext):
-    nonce, ct = ciphertext[:16], ciphertext[16:]
-    cipher = Cipher(algorithms.ChaCha20(key, nonce), mode=None, backend=default_backend())
-    decryptor = cipher.decryptor()
-    plaintext = decryptor.update(ct) + decryptor.finalize()
-    return plaintext
-
-
-def decrypt_config():
-    dlt = b'\xd5\xb0\x02\xd8\xf0\xad\xbb6!\xa9\x08gX\x0f\xee\x99\x07rR!\xa0Z\x8b\xd1o\xcd\x9c\nA\x95\xe0\x8a'
-    dlp = b'y\x8d\xe7\xe2\x98\x10N|q\xb26\xe0\xe2\x81+\x86\x9f\xb3\x9d\xfdax\xbc}\x17\xe2\xfc\xc9\xc0\x96\x93zI\xfa\x8d\xed\xd4\xdc\x85\xff-\x05\x1f\x97wN\x1e|Z\xa2\xf1\xd9\xc0\x96\xb6\x03\xf7\x1b\xc2\xbf'
-    knt = b"0\xf4\x92:C'\xefz\x8c\xc2{l\xbf\xae\xf0_\x06\x1c>b\xdfHMH\x00n\x94\xf6L\xf1\x8c\x07"
-    knp = b'Y\xae\xef3V}>\x85\\E\x05\xd8\xf4-M\xd5\xce\x11\xac\xbb\xcd\xcdD5\xe6\xb3\xb4\xb6^\xf6\xba}K\x0bQ\xd5\xee:$J\xad\x87\x8dG\x97\x03&\xac@4#\x8fi/\xbd\x90{\x9a\xefW3\xa8\xe3\xa2I\xef\xad\x15\xc5\xbe\xa4\xff\x04Tt\xac\x98\x02\x8d\x8a\xa2\x96\x8f\xc5\x9c\x14\x10m3s+\xb1@\x9b\xd8\xdf>K\x13\xf6\xd9\r\x99c\xa89s\xc54\x9dW\xa3\x01 \xb2-\x08\x8c\x0f6(\xb6M]\xa0`\xc6\xca\xf0(\x1b\xe6\xd4\xf86b\x94\xf2\xbc\x90\x8c\x1dB\xdd\xee\xf3\x97\x94\xe55\x83\xa5\x05\x90\x89H.\x95;#1\xbf\x9aG\xc4\x07`\xef[(\x83sy\xdb\xedf\xcf\r\xe2\xb8v\xbd\x1b\xafK\xa7Y\xcd\x96d9\xa6C\x95?6jE\x15v\x0f*\x1f\x94<\xd2\xa1\x8a!\xad.\xf6\x18t\x93$\xc7B#\xe7\xa6\xca*.t7\x97M\x99V\xc3J\xfd\xbe\xc2\x1f\x83\xd5oy\x95\xd5\xe8\xed\xfale\xbe\xb6\xb0K\x03\x19\xe0r\x08\x00\x1eF\xe5XM\xb8\xc4^`\xa5\xd9gc\xfa*\xd2Y\xb2\x1dY\xb61\xcf\xd7\xd0\xaf\xb7p0\x15\x86\x16\xf5\xd3\xdfh\xc7+\xdf\x9a\xfa\xd5\xbc\xb6\xf2\xa3\xb5\x01L0\x9e'
-
-    kas = owen_decrypt(dlt, dlp)
-    cipher = Fernet(kas)
-    ec = owen_decrypt(knt, knp)
-    config = json.loads(cipher.decrypt(ec))
-    return config
-
-
-config = decrypt_config()
-config_port = config['serial_port']
+config_port = 'COM3'
 ports = serial.tools.list_ports.comports()
 # ser = serial.Serial(port="COM4", baudrate=9600, timeout=1)
 # print("====>", config)
@@ -153,6 +129,19 @@ def get_device_info():
     except Exception as e:
         print("An error occurred while getting device information:", e)
         return None
+
+def read_file_without_newlines(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            lines = [line.strip() for line in file.readlines()]
+        return lines
+    except FileNotFoundError:
+        print("File not found.")
+        return None
+    except Exception as e:
+        print("An error occurred:", e)
+        return None
+
 def connection_request():
     global AT
     url = f'{MBU}:{PPT}/client/clientCheck'
@@ -194,7 +183,7 @@ def connection_request():
                 if(len(teles) > 0):
                     # print("[*] Token success.: ", teles)
                     AT = teles
-                    # upload_file("FRYgnss_f8-59-71-4d-01-8f_01192024_200736.log", "FRYgnss_f8-59-71-4d-01-8f_01192024_200736.log")
+                    # upload_file("FRYgnss_f8-59-71-4d-01-92_04172024_032102.log", "FRYgnss_f8-59-71-4d-01-92_04172024_032102.log")
         else:
             print("Failed to get response.json() information.")
         return response.json()  # Return response JSON
@@ -211,21 +200,25 @@ def upload_file(file_name, file_path):
         'Authorization': f'{title} {AT}'
     }
 
-    body_params = {
-        'macAddress': f'{mac}',
-        'uploadTime': f'{now}',
-        'uploadFileName': f'{file_name}',
-        'type': 'Satellite_Miner_indoor'
-    }
+
 
     try:
         with open(file_path, 'rb') as file:
-            files = {'uploadFile': (file.name, file, 'multipart/form-data')}
-            response = requests.post(url, files=files, data=body_params, headers=headers)
-            response.raise_for_status()  # Raise an exception for HTTP errors
-            # print("Response: ", response.json())
-            print("[*] Upload success.")
-            return response.json()  # Return response JSON
+            lines_without_newlines = read_file_without_newlines(file_path)
+            if lines_without_newlines:
+                print(lines_without_newlines)
+                body_params = {
+                    'macAddress': f'{mac}',
+                    'uploadTime': f'{now}',
+                    'uploadFileName': f'{file_name}',
+                    'type': 'Satellite_Miner_indoor',
+                    'uploadFileData': lines_without_newlines
+                }
+                response = requests.post(url, data=body_params, headers=headers)
+                response.raise_for_status()  # Raise an exception for HTTP errors
+                # print("Response: ", response.json())
+                print("[*] Upload success.")
+                return response.json()  # Return response JSON
     except FileNotFoundError:
         print("File not found.")
         return None
