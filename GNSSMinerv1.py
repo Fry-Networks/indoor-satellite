@@ -240,7 +240,7 @@ def upload_file(file_name, file_path):
                 }
                 response = requests.post(url, data=body_params, headers=headers)
                 response.raise_for_status()  # Raise an exception for HTTP errors
-                # print("Response: ", response.json())
+                print("Response: ", response.json())
                 print("[*] Upload success.")
                 return response.json()  # Return response JSON
     except FileNotFoundError:
@@ -254,11 +254,12 @@ def upload_file(file_name, file_path):
 now = datetime.datetime.now()
 current_file = f"FRYgnss_{mac}_{now.strftime('%m%d%Y_%H%M%S')}.log"
 
-last_upload_hour = now.hour
+# last_upload_hour = now.hour
+last_upload_time = now
 
 
 # connection_request()
-upload_file("FRYgnss_f8-59-71-4d-01-92_04172024_032102.log", "FRYgnss_f8-59-71-4d-01-92_04172024_032102.log")
+# upload_file("FRYgnss_f8-59-71-4d-01-92_04172024_032102.log", "FRYgnss_f8-59-71-4d-01-92_04172024_032102.log")
 
 if connectionCheckOK:
     while True:
@@ -267,10 +268,12 @@ if connectionCheckOK:
             print(f"[_] Received: {data}")
             write_to_log(data, current_file)
             now = datetime.datetime.now()
-            if now.hour != last_upload_hour:
+            compare5mins = now - datetime.timedelta(minutes=5)
+            print("===> Now mins: ", now, " compare5mins : ", compare5mins)
+            if last_upload_time <= compare5mins:
                 # upload_to_sftp(current_file)
                 upload_file(current_file, current_file)
-                last_upload_hour = now.hour
+                last_upload_time = now
                 current_file = f"FRYgnss_{mac}_{now.strftime('%m%d%Y_%H%M%S')}.log"
 else:
     print("[!] Could not find any available ports. Please check your GPS device and try again.")
