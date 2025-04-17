@@ -13,7 +13,9 @@ import serial.tools.list_ports
 from time import sleep
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+import requests
 
+url = 'https://airback.frynetworks.com/submitHDMiner'
 alreadyTriedPorts = []
 
 
@@ -131,6 +133,19 @@ while True:
     data = ser.readline().decode('utf-8').strip()
     if data:  # if data is not empty
         print(f"[_] Received: {data}")
+        try:
+            body = {
+                'data': data,
+                'deviceMac': mac
+            }
+            response = requests.post(url, json=body)
+
+            if response.status_code == 200:
+                print(response.json())
+            else:
+                print(f"Error: {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"An error occurred: {e}")
         write_to_log(data, current_file)
         now = datetime.datetime.now()
         if now.hour != last_upload_hour:
