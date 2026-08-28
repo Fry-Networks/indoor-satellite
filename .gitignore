@@ -14,3 +14,26 @@ build/GNSSMinerv1/PYZ-00.pyz
 build/GNSSMinerv1/PYZ-00.toc
 build/GNSSMinerv1/warn-GNSSMinerv1.txt
 build/GNSSMinerv1/xref-GNSSMinerv1.html
+
+# open-source hygiene
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.keystore
+*.jks
+id_rsa
+id_ed25519
+.npmrc
+.netrc
+*.tfstate
+*.tfstate.*
+kubeconfig
+serviceAccount*.json
+secrets.json
+*.sqlite
+*.sqlite3
+*.db
